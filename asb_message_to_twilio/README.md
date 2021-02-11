@@ -16,6 +16,11 @@ This template can be used in the scenarios you need to send the messages posted 
 TWILIO_ACCOUNT_SID = ""  
 TWILIO_AUTH_TOKEN = ""  
 
+#### ballerinax/asb related configurations 
+
+CONNECTION_STRING = ""
+QUEUE_PATH = ""
+
 #### General configurations
 In addition to the configurations related to ballerina modules user needs to provide the number obtained from your twilio account as 'FROM_MOBILE' and the number you wish to send the sms as 'TO_MOBILE'
 
