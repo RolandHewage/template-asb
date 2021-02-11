@@ -1,5 +1,4 @@
 import ballerina/config;
-import ballerina/io;
 import ballerinax/twilio;
 import ballerina/log;
 import ballerina/runtime;
@@ -21,10 +20,6 @@ public function main() {
     byte[] byteContent = stringContent.toBytes();
     json jsonContent = {name: "apple", color: "red", price: 5.36};
     byte[] byteContentFromJson = jsonContent.toJsonString().toBytes();
-    map<string> parameters1 = {contentType: "plain/text", messageId: "one"};
-    map<string> parameters2 = {contentType: "application/json", messageId: "two", to: "user1", replyTo: "user2", 
-        label: "a1", sessionId: "b1", correlationId: "c1", timeToLive: "2"};
-    map<string> properties = {a: "propertyValue1", b: "propertyValue2"};
 
     asb:ConnectionConfiguration config = {
         connectionString: config:getAsString("CONNECTION_STRING"),
@@ -36,8 +31,8 @@ public function main() {
 
     if (senderConnection is asb:SenderConnection) {
         log:print("Sending via Asb sender connection.");
-        checkpanic senderConnection->sendMessageWithConfigurableParameters(byteContent, parameters1, properties);
-        checkpanic senderConnection->sendMessageWithConfigurableParameters(byteContentFromJson, parameters2, properties);
+        checkpanic senderConnection->sendMessageWithConfigurableParameters(byteContent);
+        checkpanic senderConnection->sendMessageWithConfigurableParameters(byteContentFromJson);
     } else {
         log:printError("Asb sender connection creation failed.");
     }
@@ -54,12 +49,6 @@ public function main() {
             var messageContent = message.getTextContent();
             if (messageContent is string) {
                 log:print("The message received: " + messageContent);
-                var details = twilioClient->getAccountDetails();
-                if (details is twilio:Account) {
-                    io:println("Account Details: ", details);
-                } else {
-                    io:println("Error: ", details);
-                }
                 var success = twilioClient->sendSms(fromMobile, toMobile, messageContent);
                 if (success is error) {
                     log:printError("Error Occured : ", err = success);
