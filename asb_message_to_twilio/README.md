@@ -21,3 +21,16 @@ In addition to the configurations related to ballerina modules user needs to pro
 
 SAMPLE_FROM_MOBILE = ""  
 SAMPLE_TO_MOBILE = ""  
+
+## Running the Template
+
+1. First you need to build the integration template and create the executable binary. Run the following command from the root directory of the integration template. 
+`$ ballerina build -a`. 
+
+2. Then you can run the integration binary with the following command. 
+`$ java -jar target/bin/asb_message_to_twilio.jar`. 
+
+3. Now you can send a message to the azure service bus queue and observe that integration template runtime has received 
+the notification for the message.
+
+4. Also you can see the relevant phone number has received the message. 
