@@ -1,0 +1,17 @@
+[package]
+org = "roland"
+name = "calendar_new_event_to_asb_new_message"
+version = "0.1.1"
+
+[build-options]
+observabilityIncluded = true
+
+[[dependency]]
+org = "ballerinax"
+name = "asb"
+version = "0.1.2"
+
+[[dependency]]
+org = "ballerinax"
+name = "googleapis_calendar"
+version = "0.1.4"
