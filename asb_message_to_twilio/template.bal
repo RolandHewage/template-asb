@@ -35,7 +35,29 @@ asb:AsbClient asbClient = new (config);
 }
 service asb:Service on asbListener {
     remote function onMessage(asb:Message message) {
-        string messageAsString = checkpanic str:fromBytes(<byte[]> message.body);
+        string messageAsString;
+        match message?.contentType {
+            asb:TEXT => {
+                messageAsString = checkpanic str:fromBytes(<byte[]> message.body);
+            }
+            asb:JSON => {
+                string s = checkpanic str:fromBytes(<byte[]> message.body);
+                json eventData = checkpanic (s).cloneWithType(json);
+                messageAsString = eventData.toJsonString();
+            }
+            asb:XML => {
+                string s = checkpanic str:fromBytes(<byte[]> message.body);
+                xml eventData = checkpanic (s).cloneWithType(xml);
+                messageAsString = eventData.toString();
+            }
+            asb:BYTE_ARRAY => {
+                messageAsString = message.body.toString();
+            }
+            _ => {
+                messageAsString = message.body.toString();
+            }
+        }        
+
         log:printInfo("The message received: " + messageAsString);
         var result = twilioClient->sendSms(from_mobile, to_mobile, messageAsString);
         if (result is error) {
