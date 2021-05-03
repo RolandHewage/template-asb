@@ -1,5 +1,6 @@
 import ballerinax/twilio;
 import ballerina/log;
+import ballerina/lang.'string as str;
 import ballerinax/asb;
 
 // Twilio configuration parameters
@@ -8,37 +9,42 @@ configurable string auth_token = ?;
 configurable string from_mobile = ?;
 configurable string to_mobile = ?;
 
-// ASB configuration parameters
-configurable string connection_string = ?;
-configurable string queue_path = ?;
-
 twilio:TwilioConfiguration twilioConfig = {
     accountSId: account_sid,
     authToken: auth_token
 };
 twilio:Client twilioClient = new(twilioConfig);
 
+// ASB configuration parameters
+configurable string connection_string = ?;
+configurable string queue_path = ?;
+
 listener asb:Listener asbListener = new();
 
+asb:AsbConnectionConfiguration config = {
+    connectionString: connection_string
+};
+
+asb:AsbClient asbClient = new (config);
+
 @asb:ServiceConfig {
-    queueConfig: {
+    entityConfig: {
         connectionString: connection_string,
-        queueName: queue_path
+        entityPath: queue_path
     }
 }
 service asb:Service on asbListener {
     remote function onMessage(asb:Message message) {
-        var messageContent = message.getTextContent();
-        if (messageContent is string) {
-            log:print("The message received: " + messageContent);
-            var result = twilioClient->sendSms(from_mobile, to_mobile, messageContent);
-            if (result is error) {
-                log:printError("Error Occured : ", err = result);
-            } else {
-                log:print("Message sent successfully");
-            }
+        string messageAsString = checkpanic str:fromBytes(<byte[]> message.body);
+        log:printInfo("The message received: " + messageAsString);
+        var result = twilioClient->sendSms(from_mobile, to_mobile, messageAsString);
+        if (result is error) {
+            log:printError("Error Occured : ", err = result.message());
         } else {
-            log:printError("Error occurred while retrieving the message content.");
+            log:printInfo("Message sent successfully");
+            checkpanic asbClient->createQueueReceiver(queue_path);
+            checkpanic asbClient->complete(message);
+            log:printInfo("Complete message successful");
         }
     }
 }

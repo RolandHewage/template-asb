@@ -4,7 +4,7 @@
 This template can be used in the scenarios you need to send the messages posted to given channel as sms through twilio. Users need to configure their twilio mobile number as the number which sends the sms and an another registered mobile number as the receiver. 
 
 ### Pre-requisites
-* Download and install [Ballerina SLAlpha2](https://ballerinalang.org/downloads/).
+* Download and install [Ballerina SLAlpha4](https://ballerinalang.org/downloads/).
 * Twilio account with sms capable phone number
 * Ballerina connectors for Azure Service Bus and Twilio which will be automatically downloaded when building the application for the first time
 
@@ -33,7 +33,7 @@ SAMPLE_TO_MOBILE = ""
 `$ bal build`. 
 
 2. Then you can run the integration binary with the following command. 
-`$ bal run target/bin/asb_message_to_twilio-0.1.1.jar`. 
+`$ bal run target/bin/asb_message_to_twilio-0.1.2.jar`. 
 
 3. Now you can send a message to the azure service bus queue and observe that integration template runtime has received 
 the notification for the message.
