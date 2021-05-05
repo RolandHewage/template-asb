@@ -46,7 +46,7 @@ version = "1.1.0-alpha7"
 [[dependency]]
 org = "ballerinax"
 name = "asb"
-version = "0.1.2"
+version = "0.1.3"
 
 [[dependency]]
 org = "ballerinax"

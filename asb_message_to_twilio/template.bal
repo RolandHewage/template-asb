@@ -1,7 +1,7 @@
-import ballerinax/twilio;
-import ballerina/log;
 import ballerina/lang.'string as str;
+import ballerina/log;
 import ballerinax/asb;
+import ballerinax/twilio;
 
 // Twilio configuration parameters
 configurable string account_sid = ?;
@@ -30,7 +30,8 @@ asb:AsbClient asbClient = new (config);
 @asb:ServiceConfig {
     entityConfig: {
         connectionString: connection_string,
-        entityPath: queue_path
+        entityPath: queue_path,
+        receiveMode: asb:RECEIVEANDDELETE
     }
 }
 service asb:Service on asbListener {
@@ -56,17 +57,45 @@ service asb:Service on asbListener {
             _ => {
                 messageAsString = message.body.toString();
             }
-        }        
+        }
 
         log:printInfo("The message received: " + messageAsString);
-        var result = twilioClient->sendSms(from_mobile, to_mobile, messageAsString);
+        var result = twilioClient->sendSms(from_mobile, to_mobile, message.toString());
         if (result is error) {
-            log:printError("Error Occured : ", err = result.message());
+            log:printError(result.message());
         } else {
             log:printInfo("Message sent successfully");
-            checkpanic asbClient->createQueueReceiver(queue_path);
-            checkpanic asbClient->complete(message);
-            log:printInfo("Complete message successful");
+            // var deferResult = asbListener.defer(message);  
+            // if (deferResult is error) {
+            //     log:printError(deferResult.message());
+            // } else {
+            //     log:printInfo("Defer message successfully");
+            //     var getDeferResult = asbListener.receiveDeferred(deferResult);  
+            //     if (getDeferResult is error) {
+            //         log:printError(getDeferResult.message());
+            //     }
+            // }
+            var completeResult = asbListener.complete(message);  
+            if (completeResult is error) {
+                log:printError(completeResult.message());
+            } else {
+                log:printInfo("Complete message successfully");
+            }
+            // log:printInfo("Creating Asb receiver connection.");
+            // checkpanic asbClient->createQueueReceiver(queue_path);
+            // var completeResult = asbClient->complete(message);
+            // if (completeResult is error) {
+            //     log:printError(completeResult.message());
+            // } else {
+            //     log:printInfo("Complete message successfully");
+            // }
+            // log:printInfo("Closing Asb receiver connection.");
+            // checkpanic asbClient->closeReceiver();
         }
+    }
+
+    remote function onError(error e) {
+        log:printInfo("Hello");
+        log:printError(e.message());
     }
 }
