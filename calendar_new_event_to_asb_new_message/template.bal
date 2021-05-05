@@ -62,12 +62,15 @@ service /calendar on calendarListener {
         };
 
         log:printInfo("Creating Asb sender connection.");
-        checkpanic asbClient->createQueueSender(queue_path);
+        handle queueSender = checkpanic asbClient->createQueueSender(queue_path);
 
         log:printInfo("Sending via Asb sender connection.");
-        checkpanic asbClient->send(message1);
+        var result = asbClient->send(queueSender, message1);
+        if (result is error) {
+            log:printError(result.message());           
+        }
 
         log:printInfo("Closing Asb sender connection.");
-        checkpanic asbClient->closeSender();
+        checkpanic asbClient->closeSender(queueSender);
     }
 }
