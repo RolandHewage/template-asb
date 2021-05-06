@@ -2,15 +2,13 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/lang.'string as str;
 import ballerinax/asb;
-import ballerinax/googleapis_gmail as gmail;
+import ballerinax/googleapis.gmail as gmail;
 
-// Gmail client configuration
+// Gmail client configuration parameters
 configurable http:OAuth2RefreshTokenGrantConfig & readonly gmailOauthConfig = ?;
 configurable string & readonly recipient = ?;
 configurable string & readonly cc = ?;
 configurable string & readonly subject = ?;
-configurable string & readonly messageBody = ?;
-configurable string & readonly contentType = ?;
 
 gmail:GmailConfiguration gmailClientConfiguration = {
     oauthClientConfig: gmailOauthConfig
@@ -21,21 +19,16 @@ gmail:Client gmailClient = new (gmailClientConfiguration);
 
 // ASB configuration parameters
 configurable string connection_string = ?;
-configurable string queue_path = ?;
+configurable string queue_name = ?;
+configurable string receive_mode = ?;
 
 // Initialize the azure service bus listener
 listener asb:Listener asbListener = new();
 
-asb:AsbConnectionConfiguration config = {
-    connectionString: connection_string
-};
-
-asb:AsbClient asbClient = new (config);
-
 @asb:ServiceConfig {
     entityConfig: {
         connectionString: connection_string,
-        entityPath: queue_path,
+        entityPath: queue_name,
         receiveMode: asb:RECEIVEANDDELETE
     }
 }
@@ -53,7 +46,7 @@ service asb:Service on asbListener {
             }
             asb:XML => {
                 string s = checkpanic str:fromBytes(<byte[]> message.body);
-                xml eventData = checkpanic (s).cloneWithType(xml);
+                xml eventData = checkpanic xml:fromString(s);
                 messageAsString = eventData.toString();
             }
             asb:BYTE_ARRAY => {
@@ -67,15 +60,18 @@ service asb:Service on asbListener {
         log:printInfo("The message received: " + messageAsString);
 
         // Send email
+
+        // The user's email address. The special value **me** can be used to indicate the authenticated user.
+        string userId = "me";
         gmail:MessageRequest messageRequest = {};
-        messageRequest.recipient = recipient;
-        messageRequest.sender = "me";
+        messageRequest.recipient = recipient; 
+        messageRequest.sender = userId;
+        messageRequest.cc = cc; 
         messageRequest.subject = subject;
-        messageRequest.cc = cc;
         messageRequest.messageBody = messageAsString;
         messageRequest.contentType = message?.contentType.toString();
 
-        [string, string]|error sendMessageResponse = checkpanic gmailClient->sendMessage("me", messageRequest);
+        [string, string]|error sendMessageResponse = gmailClient->sendMessage(userId, messageRequest);
         if (sendMessageResponse is [string, string]) {
             // If successful complete the message & remove from the queue.
             log:printInfo("Message sent successfully");
