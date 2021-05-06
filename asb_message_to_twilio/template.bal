@@ -1,4 +1,5 @@
 import ballerina/lang.'string as str;
+import ballerina/lang.'xml;
 import ballerina/log;
 import ballerinax/asb;
 import ballerinax/twilio;
@@ -13,25 +14,23 @@ twilio:TwilioConfiguration twilioConfig = {
     accountSId: account_sid,
     authToken: auth_token
 };
+
+// Initialize the twilio client
 twilio:Client twilioClient = new(twilioConfig);
 
-// ASB configuration parameters
+// Azure service bus configuration parameters
 configurable string connection_string = ?;
-configurable string queue_path = ?;
+configurable string queue_name = ?;
+configurable string receive_mode = ?;
 
+// Initialize the azure service bus listener
 listener asb:Listener asbListener = new();
-
-asb:AsbConnectionConfiguration config = {
-    connectionString: connection_string
-};
-
-asb:AsbClient asbClient = new (config);
 
 @asb:ServiceConfig {
     entityConfig: {
         connectionString: connection_string,
-        entityPath: queue_path,
-        receiveMode: asb:RECEIVEANDDELETE
+        entityPath: queue_name,
+        receiveMode: receive_mode
     }
 }
 service asb:Service on asbListener {
@@ -48,7 +47,7 @@ service asb:Service on asbListener {
             }
             asb:XML => {
                 string s = checkpanic str:fromBytes(<byte[]> message.body);
-                xml eventData = checkpanic (s).cloneWithType(xml);
+                xml eventData = checkpanic xml:fromString(s);
                 messageAsString = eventData.toString();
             }
             asb:BYTE_ARRAY => {
@@ -60,42 +59,18 @@ service asb:Service on asbListener {
         }
 
         log:printInfo("The message received: " + messageAsString);
-        var result = twilioClient->sendSms(from_mobile, to_mobile, message.toString());
+        var result = twilioClient->sendSms(from_mobile, to_mobile,messageAsString);
         if (result is error) {
             log:printError(result.message());
         } else {
             log:printInfo("Message sent successfully");
-            // var deferResult = asbListener.defer(message);  
-            // if (deferResult is error) {
-            //     log:printError(deferResult.message());
-            // } else {
-            //     log:printInfo("Defer message successfully");
-            //     var getDeferResult = asbListener.receiveDeferred(deferResult);  
-            //     if (getDeferResult is error) {
-            //         log:printError(getDeferResult.message());
-            //     }
-            // }
+            
             var completeResult = asbListener.complete(message);  
             if (completeResult is error) {
                 log:printError(completeResult.message());
             } else {
                 log:printInfo("Complete message successfully");
             }
-            // log:printInfo("Creating Asb receiver connection.");
-            // checkpanic asbClient->createQueueReceiver(queue_path);
-            // var completeResult = asbClient->complete(message);
-            // if (completeResult is error) {
-            //     log:printError(completeResult.message());
-            // } else {
-            //     log:printInfo("Complete message successfully");
-            // }
-            // log:printInfo("Closing Asb receiver connection.");
-            // checkpanic asbClient->closeReceiver();
         }
-    }
-
-    remote function onError(error e) {
-        log:printInfo("Hello");
-        log:printError(e.message());
     }
 }
