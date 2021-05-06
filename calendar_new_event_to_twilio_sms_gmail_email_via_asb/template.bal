@@ -1,8 +1,10 @@
+import ballerina/http;
 import ballerina/lang.'string as str;
 import ballerina/log;
 import ballerinax/asb;
-import ballerinax/googleapis_calendar as calendar;
-import ballerinax/googleapis_calendar.'listener as listen;
+import ballerinax/googleapis.calendar as calendar;
+import ballerinax/googleapis.calendar.'listener as listen;
+import ballerinax/googleapis.gmail as gmail;
 import ballerinax/twilio;
 
 // ASB configuration parameters
@@ -12,6 +14,7 @@ configurable string subscription_name1 = ?;
 configurable string subscription_name2 = ?;
 configurable string subscription_path1 = ?;
 configurable string subscription_path2 = ?;
+configurable string receive_mode = ?;
 
 asb:AsbConnectionConfiguration asbConfig = {
     connectionString: connection_string
@@ -38,10 +41,8 @@ calendar:CalendarConfiguration calendarConfig = {
     }
 };
 
-// Initialize the calendar client
-calendar:Client calendarClient = check new (calendarConfig);
 // Initialize the calendar listener
-listener listen:Listener calendarListener = new (port, calendarClient, calendarId, address);
+listener listen:Listener calendarListener = new (port, calendarConfig, calendarId, address);
 
 service /calendar on calendarListener {
     remote function onNewEvent(calendar:Event event) returns error? {
@@ -90,7 +91,8 @@ listener asb:Listener asbListener = new();
 @asb:ServiceConfig {
     entityConfig: {
         connectionString: connection_string,
-        entityPath: subscription_path1
+        entityPath: subscription_path1,
+        receiveMode: receive_mode
     }
 }
 service asb:Service on asbListener {
@@ -107,7 +109,7 @@ service asb:Service on asbListener {
             }
             asb:XML => {
                 string s = checkpanic str:fromBytes(<byte[]> message.body);
-                xml eventData = checkpanic (s).cloneWithType(xml);
+                xml eventData = checkpanic xml:fromString(s);
                 messageAsString = eventData.toString();
             }
             asb:BYTE_ARRAY => {
@@ -133,3 +135,83 @@ service asb:Service on asbListener {
         }
     }
 }
+
+// Gmail client configuration parameters
+configurable http:OAuth2RefreshTokenGrantConfig & readonly gmailOauthConfig = ?;
+configurable string & readonly recipient = ?;
+configurable string & readonly cc = ?;
+configurable string & readonly subject = ?;
+
+gmail:GmailConfiguration gmailClientConfiguration = {
+    oauthClientConfig: gmailOauthConfig
+};
+
+// Initialize Gmail client 
+gmail:Client gmailClient = new (gmailClientConfiguration);
+
+// Initialize the azure service bus listener
+listener asb:Listener asbListener2 = new();
+
+@asb:ServiceConfig {
+    entityConfig: {
+        connectionString: connection_string,
+        entityPath: subscription_path2,
+        receiveMode: receive_mode
+    }
+}
+service asb:Service on asbListener2 {
+    remote function onMessage(asb:Message message) {
+        string messageAsString;
+        match message?.contentType {
+            asb:TEXT => {
+                messageAsString = checkpanic str:fromBytes(<byte[]> message.body);
+            }
+            asb:JSON => {
+                string s = checkpanic str:fromBytes(<byte[]> message.body);
+                json eventData = checkpanic (s).cloneWithType(json);
+                messageAsString = eventData.toJsonString();
+            }
+            asb:XML => {
+                string s = checkpanic str:fromBytes(<byte[]> message.body);
+                xml eventData = checkpanic xml:fromString(s);
+                messageAsString = eventData.toString();
+            }
+            asb:BYTE_ARRAY => {
+                messageAsString = message.body.toString();
+            }
+            _ => {
+                messageAsString = message.body.toString();
+            }
+        }        
+
+        log:printInfo("The message received: " + messageAsString);
+
+        // Send email
+
+        // The user's email address. The special value **me** can be used to indicate the authenticated user.
+        string userId = "me";
+        gmail:MessageRequest messageRequest = {};
+        messageRequest.recipient = recipient; 
+        messageRequest.sender = userId;
+        messageRequest.cc = cc; 
+        messageRequest.subject = subject;
+        messageRequest.messageBody = messageAsString;
+        messageRequest.contentType = message?.contentType.toString();
+
+        [string, string]|error sendMessageResponse = gmailClient->sendMessage(userId, messageRequest);
+        if (sendMessageResponse is [string, string]) {
+            // If successful complete the message & remove from the queue.
+            log:printInfo("Message sent successfully");
+            var completeResult = asbListener.complete(message);  
+            if (completeResult is error) {
+                log:printError(completeResult.message());
+            } else {
+                log:printInfo("Complete message successfully");
+            }
+        } else {
+            // If unsuccessful, print the error returned.
+            log:printError(sendMessageResponse.message());
+        }
+    }
+}
+
