@@ -4,7 +4,7 @@
 This template can be used in the scenarios you need to send the messages posted to given channel as sms through twilio. Users need to configure their twilio mobile number as the number which sends the sms and an another registered mobile number as the receiver. 
 
 ### Pre-requisites
-* Download and install [Ballerina SLAlpha4](https://ballerinalang.org/downloads/).
+* Download and install [Ballerina SLAlpha5](https://ballerinalang.org/downloads/).
 * Twilio account with sms capable phone number
 * Ballerina connectors for Azure Service Bus and Twilio which will be automatically downloaded when building the application for the first time
 

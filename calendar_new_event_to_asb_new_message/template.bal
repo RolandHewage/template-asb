@@ -1,7 +1,7 @@
 import ballerina/log;
 import ballerinax/asb;
-import ballerinax/googleapis_calendar as calendar;
-import ballerinax/googleapis_calendar.'listener as listen;
+import ballerinax/googleapis.calendar as calendar;
+import ballerinax/googleapis.calendar.'listener as listen;
 
 // ASB configuration parameters
 configurable string connection_string = ?;
@@ -32,12 +32,8 @@ calendar:CalendarConfiguration calendarConfig = {
     }
 };
 
-type MapStringdata map<string>;
-
-// Initialize the calendar client
-calendar:Client calendarClient = check new (calendarConfig);
 // Initialize the calendar listener
-listener listen:Listener calendarListener = new (port, calendarClient, calendarId, address);
+listener listen:Listener calendarListener = new (port, calendarConfig, calendarId, address);
 
 service /calendar on calendarListener {
     remote function onNewEvent(calendar:Event event) returns error? {
