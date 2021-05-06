@@ -52,7 +52,6 @@ service on sfdcEventListener {
         if (CREATED.equalsIgnoreCaseAscii(eventType.toString())) {
             json sObjectId = check sObjectInfo.sobject.Id;            
             json sObjectObject = check sObjectInfo.sobject;
-            // check appendSheetWithNewRecord(sObjectObject);
             check sendMessageToAsbQueue(sObjectObject);  
        
         }        

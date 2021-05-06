@@ -1,7 +1,7 @@
 [package]
 org = "roland"
 name = "calendar_new_event_to_asb_new_message"
-version = "0.1.2"
+version = "0.1.1"
 
 [build-options]
 observabilityIncluded = true
